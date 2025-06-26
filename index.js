@@ -32,6 +32,12 @@ async function run() {
     const parcelsCollection = client.db("zapshiftDB").collection("parcels");
 
 
+     app.get('/parcels', async (req, res) => {
+      const parcels = await parcelsCollection.find().toArray();
+      res.send(parcels);
+    });
+
+
     app.post('/parcels', async (req, res) => {
       const parcel = req.body; 
       const result = await parcelsCollection.insertOne(parcel); 
