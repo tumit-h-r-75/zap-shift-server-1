@@ -31,7 +31,14 @@ async function run() {
 
     const parcelsCollection = client.db("zapshiftDB").collection("parcels");
 
-    
+
+    app.post('/parcels', async (req, res) => {
+      const parcel = req.body; 
+      const result = await parcelsCollection.insertOne(parcel); 
+      res.send(result); 
+    });
+
+
     // Ping to confirm connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. Successfully connected to MongoDB!");
