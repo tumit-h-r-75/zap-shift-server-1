@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { MongoClient, ObjectId, ServerApiVersion } from 'mongodb';
 
 dotenv.config();
 
@@ -41,10 +41,10 @@ async function run() {
         app.get('/parcels', async (req, res) => {
             const email = req.query.email;
 
-            const query = email ? { created_by: email } : {}; 
+            const query = email ? { created_by: email } : {};
             const result = await parcelsCollection
                 .find(query)
-                .sort({ creation_date: -1 }) 
+                .sort({ creation_date: -1 })
                 .toArray();
 
             res.send(result);
@@ -58,6 +58,13 @@ async function run() {
             res.send(result);
         });
 
+
+        app.delete('/parcels/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await parcelsCollection.deleteOne({ _id: new ObjectId(id) });
+
+            res.send(result); 
+        });
 
         // Ping to confirm connection
         await client.db("admin").command({ ping: 1 });
