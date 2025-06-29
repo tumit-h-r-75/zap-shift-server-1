@@ -38,7 +38,7 @@ async function run() {
 
 
         const parcelsCollection = client.db("zapshiftDB").collection("parcels");
-        const paymentsCollection = client.db()("zapshiftDB").collection("payments")
+        const paymentsCollection = client.db("zapshiftDB").collection("payments")
 
 
         app.get('/parcels', async (req, res) => {
@@ -68,7 +68,16 @@ async function run() {
         });
 
 
-       
+        // for admin seeing the all payment history
+        app.get("/all-payments", async (req, res) => {
+            const result = await paymentsCollection
+                .find()
+                .sort({ date: -1 }) 
+                .toArray();
+
+            res.send(result);
+        });
+
 
 
         // for user payment history seen
@@ -108,14 +117,14 @@ async function run() {
 
         // for payment history + parcel data update 
         app.post("/save-payment", async (req, res) => {
-            const { transactionId, amount, email, id, date } = req.body;
+            const { transactionId, amount, email, parcelId, date } = req.body;
 
             // save the payment history
             const payment = {
                 transactionId,
                 amount,
                 email,
-                id,
+                parcelId,
                 date, // ex: new Date()
             };
             const paymentResult = await paymentsCollection.insertOne(payment);
@@ -123,7 +132,7 @@ async function run() {
             // update the payment stutas
             const parcelResult = await parcelsCollection.updateOne(
                 { _id: new ObjectId(parcelId) },
-                { $set: { payment_status: "paid" } }
+                { $set: { Payment_status: "paid" } }
             );
 
             res.send({ paymentResult, parcelResult });
