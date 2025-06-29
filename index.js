@@ -68,6 +68,22 @@ async function run() {
         });
 
 
+       
+
+
+        // for user payment history seen
+        app.get("/my-payments/:email", async (req, res) => {
+            const email = req.params.email;
+            const result = await paymentsCollection
+                .find({ email })
+                .sort({ date: -1 })
+                .toArray();
+
+            res.send(result);
+        });
+
+
+
 
         app.post('/parcels', async (req, res) => {
             const parcel = req.body;
