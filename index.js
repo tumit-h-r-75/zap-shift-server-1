@@ -38,6 +38,7 @@ async function run() {
 
 
         const parcelsCollection = client.db("zapshiftDB").collection("parcels");
+        const paymentsCollection = client.db()("zapshiftDB").collection("payments")
 
 
         app.get('/parcels', async (req, res) => {
@@ -86,6 +87,32 @@ async function run() {
 
             res.send({ clientSecret: paymentIntent.client_secret });
         });
+
+
+
+        // for payment history + parcel data update 
+        app.post("/save-payment", async (req, res) => {
+            const { transactionId, amount, email, id, date } = req.body;
+
+            // save the payment history
+            const payment = {
+                transactionId,
+                amount,
+                email,
+                id,
+                date, // ex: new Date()
+            };
+            const paymentResult = await paymentsCollection.insertOne(payment);
+
+            // update the payment stutas
+            const parcelResult = await parcelsCollection.updateOne(
+                { _id: new ObjectId(parcelId) },
+                { $set: { payment_status: "paid" } }
+            );
+
+            res.send({ paymentResult, parcelResult });
+        });
+
 
 
 
