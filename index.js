@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { MongoClient, ObjectId, ServerApiVersion } from 'mongodb';
+const admin = require("firebase-admin");
 
 
 
@@ -19,6 +20,16 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+
+// firebase admin code........................................................... 
+
+const serviceAccount = require("./firebase.json");
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+// .....................................................................................
 
 const uri = process.env.MONGO_URI; //aitar modde mongodb ar user pass ase 
 
@@ -38,9 +49,35 @@ async function run() {
 
 
         const parcelsCollection = client.db("zapshiftDB").collection("parcels");
-        const paymentsCollection = client.db("zapshiftDB").collection("payments")
-        const trackingCollection = client.db("zapshiftDB").collection("tracking")
-        const usersCollection = client.db("zapshiftDB").collection("user")
+        const paymentsCollection = client.db("zapshiftDB").collection("payments");
+        const trackingCollection = client.db("zapshiftDB").collection("tracking");
+        const usersCollection = client.db("zapshiftDB").collection("user");
+
+
+        // custom middleware for jwt
+        const verifyFBToken = async (req, res, next) => {
+            // console.log('header in the middleware',req.headers);
+            const authHeader = req.headers.Authorization;
+            if (!authHeader) {
+                return res.status(401).send({ message: 'unauthorized access' })
+            }
+            const token = authHeader.split(' ')[1];
+            if (!token) {
+                return res.status(401).send({ message: 'unauthorized access' })
+            }
+            // verify the token
+            try {
+                const decoded = await admin.auth().verifyIdToken(token);
+                req.decoded = decoded;
+            }
+            catch(error){
+                return res.status(403).send({ message: 'forbiten access' })
+            }
+
+            next()
+        }
+
+
 
 
         app.get('/parcels', async (req, res) => {
@@ -83,7 +120,8 @@ async function run() {
 
 
         // for user payment history seen
-        app.get("/my-payments/:email", async (req, res) => {
+        app.get("/my-payments/:email", verifyFBToken, async (req, res) => {
+            console.log('headers in payments ', req.headers);
             const email = req.params.email;
             const result = await paymentsCollection
                 .find({ email })
