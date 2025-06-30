@@ -39,6 +39,8 @@ async function run() {
 
         const parcelsCollection = client.db("zapshiftDB").collection("parcels");
         const paymentsCollection = client.db("zapshiftDB").collection("payments")
+        const trackingCollection = client.db("zapshiftDB").collection("tracking")
+        const usersCollection = client.db("zapshiftDB").collection("user")
 
 
         app.get('/parcels', async (req, res) => {
@@ -72,7 +74,7 @@ async function run() {
         app.get("/all-payments", async (req, res) => {
             const result = await paymentsCollection
                 .find()
-                .sort({ date: -1 }) 
+                .sort({ date: -1 })
                 .toArray();
 
             res.send(result);
@@ -137,6 +139,42 @@ async function run() {
 
             res.send({ paymentResult, parcelResult });
         });
+
+        // for tracking related apis 
+        app.post("/tracking", async (req, res) => {
+            const { trackingId, status, date, location, note } = req.body;
+
+            const newTracking = {
+                trackingId,
+                status,
+                date: new Date(date),
+                location,
+                note
+            };
+
+            const result = await trackingCollection.insertOne(newTracking);
+            res.send(result);
+        });
+
+        // user related apis
+        app.post('/users', async (req, res) => {
+            const email = req.body.email
+            const existingUser = await usersCollection.findOne({ email });
+            if (existingUser) {
+                const updateRes = await usersCollection.updateOne(
+                    { email },
+                    {
+                        $set: {
+                            last_log_In: new Date().toISOString()
+                        }
+                    }
+                );
+                return res.status(200).send({ message: 'User already exists. Last login updated.', inserted: false, updated: true });
+            }
+            const user = req.body
+            const result = await usersCollection.insertOne(user)
+            res.send(result)
+        })
 
 
 
