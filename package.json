@@ -1,14 +1,15 @@
 {
   "name": "zap-shift-server",
   "version": "1.0.0",
+  "description": "Backend server for ZAPSHIFT Parcel Delivery App",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Tumit Hasan",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -16,5 +17,8 @@
     "firebase-admin": "^13.4.0",
     "mongodb": "^6.17.0",
     "stripe": "^18.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }

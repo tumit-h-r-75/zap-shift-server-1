@@ -1,9 +1,10 @@
 // server.js
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { MongoClient, ObjectId, ServerApiVersion } from 'mongodb';
-const admin = require("firebase-admin");
+const express = require ('express');
+const cors = require ('cors');
+const dotenv = require ('dotenv');
+const { MongoClient, ObjectId, ServerApiVersion } = require ('mongodb');
+const admin = require ('firebase-admin');
+const serviceAccount = require ('./zap-shift-application-firebase-admin.json')
 
 
 
@@ -11,7 +12,7 @@ dotenv.config();
 
 // payment
 // const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-import Stripe from 'stripe';
+const Stripe = require ('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // 
 
@@ -24,7 +25,7 @@ app.use(express.json());
 
 // firebase admin code........................................................... 
 
-const serviceAccount = require("./firebase.json");
+
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -57,7 +58,7 @@ async function run() {
         // custom middleware for jwt
         const verifyFBToken = async (req, res, next) => {
             // console.log('header in the middleware',req.headers);
-            const authHeader = req.headers.Authorization;
+            const authHeader = req.headers.authorization ;
             if (!authHeader) {
                 return res.status(401).send({ message: 'unauthorized access' })
             }
@@ -69,32 +70,33 @@ async function run() {
             try {
                 const decoded = await admin.auth().verifyIdToken(token);
                 req.decoded = decoded;
+
+                next()
             }
-            catch(error){
-                return res.status(403).send({ message: 'forbiten access' })
+            catch (error) {
+                return res.status(403).send({ message: 'forbidden access' })
             }
 
-            next()
         }
 
 
 
 
-        app.get('/parcels', async (req, res) => {
+        app.get('/parcels',verifyFBToken, async (req, res) => {
             const result = await parcelsCollection.find().toArray();
             res.send(result);
         });
 
 
         // for getting data by id
-        app.get('/parcels/:id', async (req, res) => {
+        app.get('/parcels/:id',verifyFBToken, async (req, res) => {
             const id = req.params.id;
             const parcel = await parcelsCollection.findOne({ _id: new ObjectId(id) });
             res.send(parcel);
         });
 
         // for my parcel data & admins data 
-        app.get('/parcels', async (req, res) => {
+        app.get('/parcels',verifyFBToken, async (req, res) => {
             const email = req.query.email;
 
             const query = email ? { created_by: email } : {};
@@ -108,7 +110,7 @@ async function run() {
 
 
         // for admin seeing the all payment history
-        app.get("/all-payments", async (req, res) => {
+        app.get("/all-payments",verifyFBToken, async (req, res) => {
             const result = await paymentsCollection
                 .find()
                 .sort({ date: -1 })
@@ -123,6 +125,12 @@ async function run() {
         app.get("/my-payments/:email", verifyFBToken, async (req, res) => {
             console.log('headers in payments ', req.headers);
             const email = req.params.email;
+            
+
+            if(req.decoded.email!==email){
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            
             const result = await paymentsCollection
                 .find({ email })
                 .sort({ date: -1 })
@@ -134,7 +142,7 @@ async function run() {
 
 
 
-        app.post('/parcels', async (req, res) => {
+        app.post('/parcels',verifyFBToken, async (req, res) => {
             const parcel = req.body;
             const result = await parcelsCollection.insertOne(parcel);
             res.send(result);
@@ -156,7 +164,7 @@ async function run() {
 
 
         // for payment history + parcel data update 
-        app.post("/save-payment", async (req, res) => {
+        app.post("/save-payment",verifyFBToken, async (req, res) => {
             const { transactionId, amount, email, parcelId, date } = req.body;
 
             // save the payment history
@@ -217,7 +225,7 @@ async function run() {
 
 
 
-        app.delete('/parcels/:id', async (req, res) => {
+        app.delete('/parcels/:id',verifyFBToken, async (req, res) => {
             const id = req.params.id;
             const result = await parcelsCollection.deleteOne({ _id: new ObjectId(id) });
 
