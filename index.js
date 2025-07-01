@@ -1,10 +1,10 @@
 // server.js
-const express = require ('express');
-const cors = require ('cors');
-const dotenv = require ('dotenv');
-const { MongoClient, ObjectId, ServerApiVersion } = require ('mongodb');
-const admin = require ('firebase-admin');
-const serviceAccount = require ('./zap-shift-application-firebase-admin.json')
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
+const admin = require('firebase-admin');
+const serviceAccount = require('./zap-shift-application-firebase-admin.json')
 
 
 
@@ -12,7 +12,7 @@ dotenv.config();
 
 // payment
 // const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
-const Stripe = require ('stripe');
+const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // 
 
@@ -53,12 +53,14 @@ async function run() {
         const paymentsCollection = client.db("zapshiftDB").collection("payments");
         const trackingCollection = client.db("zapshiftDB").collection("tracking");
         const usersCollection = client.db("zapshiftDB").collection("user");
+        const ridersCollection = client.db("zapshiftDB").collection("riders");
+
 
 
         // custom middleware for jwt
         const verifyFBToken = async (req, res, next) => {
             // console.log('header in the middleware',req.headers);
-            const authHeader = req.headers.authorization ;
+            const authHeader = req.headers.authorization;
             if (!authHeader) {
                 return res.status(401).send({ message: 'unauthorized access' })
             }
@@ -82,21 +84,21 @@ async function run() {
 
 
 
-        app.get('/parcels',verifyFBToken, async (req, res) => {
+        app.get('/parcels', verifyFBToken, async (req, res) => {
             const result = await parcelsCollection.find().toArray();
             res.send(result);
         });
 
 
         // for getting data by id
-        app.get('/parcels/:id',verifyFBToken, async (req, res) => {
+        app.get('/parcels/:id', verifyFBToken, async (req, res) => {
             const id = req.params.id;
             const parcel = await parcelsCollection.findOne({ _id: new ObjectId(id) });
             res.send(parcel);
         });
 
         // for my parcel data & admins data 
-        app.get('/parcels',verifyFBToken, async (req, res) => {
+        app.get('/parcels', verifyFBToken, async (req, res) => {
             const email = req.query.email;
 
             const query = email ? { created_by: email } : {};
@@ -110,7 +112,7 @@ async function run() {
 
 
         // for admin seeing the all payment history
-        app.get("/all-payments",verifyFBToken, async (req, res) => {
+        app.get("/all-payments", verifyFBToken, async (req, res) => {
             const result = await paymentsCollection
                 .find()
                 .sort({ date: -1 })
@@ -125,12 +127,12 @@ async function run() {
         app.get("/my-payments/:email", verifyFBToken, async (req, res) => {
             console.log('headers in payments ', req.headers);
             const email = req.params.email;
-            
 
-            if(req.decoded.email!==email){
+
+            if (req.decoded.email !== email) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
-            
+
             const result = await paymentsCollection
                 .find({ email })
                 .sort({ date: -1 })
@@ -142,7 +144,7 @@ async function run() {
 
 
 
-        app.post('/parcels',verifyFBToken, async (req, res) => {
+        app.post('/parcels', verifyFBToken, async (req, res) => {
             const parcel = req.body;
             const result = await parcelsCollection.insertOne(parcel);
             res.send(result);
@@ -164,7 +166,7 @@ async function run() {
 
 
         // for payment history + parcel data update 
-        app.post("/save-payment",verifyFBToken, async (req, res) => {
+        app.post("/save-payment", verifyFBToken, async (req, res) => {
             const { transactionId, amount, email, parcelId, date } = req.body;
 
             // save the payment history
@@ -220,12 +222,20 @@ async function run() {
             const user = req.body
             const result = await usersCollection.insertOne(user)
             res.send(result)
-        })
+        });
+
+
+        // Rider application submit
+        app.post('/riders', async (req, res) => {
+            const rider = req.body;
+            const result = await ridersCollection.insertOne(rider);
+            res.send(result); // contains insertedId
+        });
 
 
 
 
-        app.delete('/parcels/:id',verifyFBToken, async (req, res) => {
+        app.delete('/parcels/:id', verifyFBToken, async (req, res) => {
             const id = req.params.id;
             const result = await parcelsCollection.deleteOne({ _id: new ObjectId(id) });
 
