@@ -85,13 +85,13 @@ async function run() {
         // rider related apis.............................................
 
         // for pending riders
-        app.get('/riders/pending', async (req, res) => {
+        app.get('/riders/pending',verifyFBToken, async (req, res) => {
             const pendingRiders = await ridersCollection.find({ status: 'pending' }).toArray();
             res.send(pendingRiders);
         });
 
         // for active riders
-        app.get('/riders/active', async (req, res) => {
+        app.get('/riders/active',verifyFBToken, async (req, res) => {
             const activeRiders = await ridersCollection.find({ status: 'active' }).toArray();
             res.send(activeRiders);
         });
@@ -165,7 +165,7 @@ async function run() {
         });
 
         // for payment realted apis 
-        app.post("/create-payment-intent", async (req, res) => {
+        app.post("/create-payment-intent",verifyFBToken, async (req, res) => {
             const amount = req.body.amount;
 
             const paymentIntent = await stripe.paymentIntents.create({
@@ -203,7 +203,7 @@ async function run() {
         });
 
         // for tracking related apis 
-        app.post("/tracking", async (req, res) => {
+        app.post("/tracking",verifyFBToken, async (req, res) => {
             const { trackingId, status, date, location, note } = req.body;
 
             const newTracking = {
@@ -240,7 +240,7 @@ async function run() {
 
 
         // Rider application submit
-        app.post('/riders', async (req, res) => {
+        app.post('/riders',verifyFBToken, async (req, res) => {
             const rider = req.body;
             const result = await ridersCollection.insertOne(rider);
             res.send(result); // contains insertedId
@@ -248,7 +248,7 @@ async function run() {
 
 
         // for  Approve rider
-        app.patch('/riders/approve/:id', async (req, res) => {
+        app.patch('/riders/approve/:id',verifyFBToken, async (req, res) => {
             const id = req.params.id;
             const result = await ridersCollection.updateOne(
                 { _id: new ObjectId(id) },
@@ -257,7 +257,7 @@ async function run() {
             res.send(result);
         });
         // for Deactivate rider
-        app.patch('/riders/deactivate/:id', async (req, res) => {
+        app.patch('/riders/deactivate/:id',verifyFBToken, async (req, res) => {
             const id = req.params.id;
             const result = await ridersCollection.updateOne(
                 { _id: new ObjectId(id) },
@@ -277,7 +277,7 @@ async function run() {
         });
 
         // for rider data delete
-        app.delete('/riders/:id', async (req, res) => {
+        app.delete('/riders/:id',verifyFBToken, async (req, res) => {
             const id = req.params.id;
             const result = await ridersCollection.deleteOne({ _id: new ObjectId(id) });
             res.send(result);
