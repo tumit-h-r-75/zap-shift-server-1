@@ -247,6 +247,17 @@ async function run() {
         });
 
 
+        // for  Approve rider
+        app.patch('/riders/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            const result = await ridersCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { status: 'active' } }
+            );
+            res.send(result);
+        });
+
+
 
 
         app.delete('/parcels/:id', verifyFBToken, async (req, res) => {
