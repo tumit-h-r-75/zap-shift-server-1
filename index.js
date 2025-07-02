@@ -82,6 +82,14 @@ async function run() {
         }
 
 
+        // rider related apis.............................................
+
+        // for pending riders
+        app.get('/riders/pending', async (req, res) => {
+            const pendingRiders = await ridersCollection.find({ status: 'pending' }).toArray();
+            res.send(pendingRiders);
+        });
+
 
 
         app.get('/parcels', verifyFBToken, async (req, res) => {
