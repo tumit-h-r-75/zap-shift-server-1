@@ -90,6 +90,12 @@ async function run() {
             res.send(pendingRiders);
         });
 
+        // for active riders
+        app.get('/riders/active', async (req, res) => {
+            const activeRiders = await ridersCollection.find({ status: 'active' }).toArray();
+            res.send(activeRiders);
+        });
+
 
 
         app.get('/parcels', verifyFBToken, async (req, res) => {
