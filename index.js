@@ -81,6 +81,16 @@ async function run() {
 
         }
 
+        //admin related apis*******************************************************
+        app.get('/user/search', async (req, res) => {
+            const emailQuery = req.query.email;
+
+            const user = await usersCollection.findOne({
+                email: { $regex: emailQuery, $options: 'i' }  // 'i' = case-insensitive
+            });
+
+            res.send(user);
+        });
 
         // rider related apis.............................................
 
