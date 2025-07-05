@@ -92,6 +92,16 @@ async function run() {
             res.send(user);
         });
 
+
+        app.patch('/user/update-role', async (req, res) => {
+            const { email, role } = req.body;
+            const result = await usersCollection.updateOne(
+                { email },
+                { $set: { role } }
+            );
+            res.send(result);
+        });
+
         // rider related apis.............................................
 
         // for pending riders
