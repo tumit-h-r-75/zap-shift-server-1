@@ -79,14 +79,14 @@ async function run() {
             const email = req.decoded.email;
             const query = { email };
             const user = await usersCollection.findOne(query);
-            if(!user||user.role!=='admin'){
-                return res.status(403).send({message:'forbidden access'})
+            if (!user || user.role !== 'admin') {
+                return res.status(403).send({ message: 'forbidden access' })
             }
             next();
         }
 
         //admin related apis*******************************************************
-        app.get('/user/search', verifyFBToken,verifyAdmin, async (req, res) => {
+        app.get('/user/search', verifyFBToken, verifyAdmin, async (req, res) => {
             const emailQuery = req.query.email;
             const user = await usersCollection.findOne({
                 email: { $regex: emailQuery, $options: 'i' }
@@ -95,7 +95,7 @@ async function run() {
         });
 
         // get user role by email
-        app.get('/user/role', verifyFBToken,verifyAdmin, async (req, res) => {
+        app.get('/user/role', verifyFBToken, verifyAdmin, async (req, res) => {
             const email = req.query.email;
             const user = await usersCollection.findOne({ email });
             res.send({
@@ -104,8 +104,20 @@ async function run() {
             });
         });
 
+        // for assign riders
+        app.get('/parcels/admin', verifyFBToken, verifyAdmin, async (req, res) => {
+            const result = await parcelsCollection.find({
+                delevery_status: "not_collected",
+                Payment_status: "paid"
+            })
+                .sort({ creation_date: -1 })
+                .toArray();
 
-        app.patch('/user/update-role', verifyFBToken,verifyAdmin, async (req, res) => {
+            res.send(result);
+        });
+
+
+        app.patch('/user/update-role', verifyFBToken, verifyAdmin, async (req, res) => {
             const { email, role } = req.body;
             const result = await usersCollection.updateOne(
                 { email },
@@ -117,13 +129,13 @@ async function run() {
         // rider related apis.............................................
 
         // for pending riders
-        app.get('/riders/pending', verifyFBToken,verifyAdmin, async (req, res) => {
+        app.get('/riders/pending', verifyFBToken, verifyAdmin, async (req, res) => {
             const pendingRiders = await ridersCollection.find({ status: 'pending' }).toArray();
             res.send(pendingRiders);
         });
 
         // for active riders
-        app.get('/riders/active', verifyFBToken,verifyAdmin, async (req, res) => {
+        app.get('/riders/active', verifyFBToken, verifyAdmin, async (req, res) => {
             const activeRiders = await ridersCollection.find({ status: 'active' }).toArray();
             res.send(activeRiders);
         });
@@ -143,7 +155,7 @@ async function run() {
         });
 
         // for my parcel data & admins data 
-        app.get('/parcels', verifyFBToken, async (req, res) => {
+        app.get('/parcels', verifyFBToken, verifyAdmin, async (req, res) => {
             const email = req.query.email;
             const query = email ? { created_by: email } : {};
             const result = await parcelsCollection
@@ -155,7 +167,7 @@ async function run() {
 
 
         // for admin seeing the all payment history
-        app.get("/all-payments", verifyFBToken,verifyAdmin, async (req, res) => {
+        app.get("/all-payments", verifyFBToken, verifyAdmin, async (req, res) => {
             const result = await paymentsCollection
                 .find()
                 .sort({ date: -1 })
@@ -261,7 +273,7 @@ async function run() {
 
 
         // for  Approve rider
-        app.patch('/riders/approve/:id', verifyFBToken,verifyAdmin, async (req, res) => {
+        app.patch('/riders/approve/:id', verifyFBToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             // Step 1: Find the rider by id to get their email
             const rider = await ridersCollection.findOne({ _id: new ObjectId(id) });
@@ -280,7 +292,7 @@ async function run() {
 
 
         // for Deactivate rider
-        app.patch('/riders/deactivate/:id', verifyFBToken,verifyAdmin, async (req, res) => {
+        app.patch('/riders/deactivate/:id', verifyFBToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const rider = await ridersCollection.findOne({ _id: new ObjectId(id) });
             const riderUpdate = await ridersCollection.updateOne(
@@ -303,7 +315,7 @@ async function run() {
         });
 
         // for rider data delete
-        app.delete('/riders/:id', verifyFBToken,verifyAdmin, async (req, res) => {
+        app.delete('/riders/:id', verifyFBToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const result = await ridersCollection.deleteOne({ _id: new ObjectId(id) });
             res.send(result);
