@@ -76,7 +76,7 @@ async function run() {
         }
 
         //admin related apis*******************************************************
-        app.get('/user/search', async (req, res) => {
+        app.get('/user/search',verifyFBToken, async (req, res) => {
             const emailQuery = req.query.email;
             const user = await usersCollection.findOne({
                 email: { $regex: emailQuery, $options: 'i' }
@@ -85,7 +85,7 @@ async function run() {
         });
 
         // get user role by email
-        app.get('/user/role', async (req, res) => {
+        app.get('/user/role',verifyFBToken, async (req, res) => {
             const email = req.query.email;
             const user = await usersCollection.findOne({ email });
             res.send({
@@ -95,7 +95,7 @@ async function run() {
         });
 
 
-        app.patch('/user/update-role', async (req, res) => {
+        app.patch('/user/update-role',verifyFBToken, async (req, res) => {
             const { email, role } = req.body;
             const result = await usersCollection.updateOne(
                 { email },
@@ -223,7 +223,7 @@ async function run() {
         });
 
         // user related apis
-        app.post('/users', async (req, res) => {
+        app.post('/users',verifyFBToken, async (req, res) => {
             const email = req.body.email
             const existingUser = await usersCollection.findOne({ email });
             if (existingUser) {
