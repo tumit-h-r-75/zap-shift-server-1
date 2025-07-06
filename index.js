@@ -7,7 +7,6 @@ const admin = require('firebase-admin');
 const serviceAccount = require('./zap-shift-application-firebase-admin.json')
 
 
-
 dotenv.config();
 
 // payment
@@ -24,9 +23,6 @@ app.use(express.json());
 
 
 // firebase admin code........................................................... 
-
-
-
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
 });
@@ -47,7 +43,6 @@ async function run() {
     try {
         // Connect client once at startup
         await client.connect();
-
 
         const parcelsCollection = client.db("zapshiftDB").collection("parcels");
         const paymentsCollection = client.db("zapshiftDB").collection("payments");
@@ -78,18 +73,25 @@ async function run() {
             catch (error) {
                 return res.status(403).send({ message: 'forbidden access' })
             }
-
         }
 
         //admin related apis*******************************************************
         app.get('/user/search', async (req, res) => {
             const emailQuery = req.query.email;
-
             const user = await usersCollection.findOne({
-                email: { $regex: emailQuery, $options: 'i' }  // 'i' = case-insensitive
+                email: { $regex: emailQuery, $options: 'i' }
             });
-
             res.send(user);
+        });
+
+        // get user role by email
+        app.get('/user/role', async (req, res) => {
+            const email = req.query.email;
+            const user = await usersCollection.findOne({ email });
+            res.send({
+                email: user.email,
+                role: user.role
+            });
         });
 
 
@@ -117,7 +119,6 @@ async function run() {
         });
 
 
-
         app.get('/parcels', verifyFBToken, async (req, res) => {
             const result = await parcelsCollection.find().toArray();
             res.send(result);
@@ -134,13 +135,11 @@ async function run() {
         // for my parcel data & admins data 
         app.get('/parcels', verifyFBToken, async (req, res) => {
             const email = req.query.email;
-
             const query = email ? { created_by: email } : {};
             const result = await parcelsCollection
                 .find(query)
                 .sort({ creation_date: -1 })
                 .toArray();
-
             res.send(result);
         });
 
@@ -161,12 +160,6 @@ async function run() {
         app.get("/my-payments/:email", verifyFBToken, async (req, res) => {
             console.log('headers in payments ', req.headers);
             const email = req.params.email;
-
-
-            if (req.decoded.email !== email) {
-                return res.status(403).send({ message: 'forbidden access' })
-            }
-
             const result = await paymentsCollection
                 .find({ email })
                 .sort({ date: -1 })
@@ -174,8 +167,6 @@ async function run() {
 
             res.send(result);
         });
-
-
 
 
         app.post('/parcels', verifyFBToken, async (req, res) => {
@@ -187,13 +178,11 @@ async function run() {
         // for payment realted apis 
         app.post("/create-payment-intent", verifyFBToken, async (req, res) => {
             const amount = req.body.amount;
-
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount * 100, // stripe এর amount cent এ হয়
                 currency: "usd",
                 payment_method_types: ["card"],
             });
-
             res.send({ clientSecret: paymentIntent.client_secret });
         });
 
@@ -202,7 +191,6 @@ async function run() {
         // for payment history + parcel data update 
         app.post("/save-payment", verifyFBToken, async (req, res) => {
             const { transactionId, amount, email, parcelId, date } = req.body;
-
             // save the payment history
             const payment = {
                 transactionId,
@@ -212,20 +200,17 @@ async function run() {
                 date, // ex: new Date()
             };
             const paymentResult = await paymentsCollection.insertOne(payment);
-
             // update the payment stutas
             const parcelResult = await parcelsCollection.updateOne(
                 { _id: new ObjectId(parcelId) },
                 { $set: { Payment_status: "paid" } }
             );
-
             res.send({ paymentResult, parcelResult });
         });
 
         // for tracking related apis 
         app.post("/tracking", verifyFBToken, async (req, res) => {
             const { trackingId, status, date, location, note } = req.body;
-
             const newTracking = {
                 trackingId,
                 status,
@@ -233,7 +218,6 @@ async function run() {
                 location,
                 note
             };
-
             const result = await trackingCollection.insertOne(newTracking);
             res.send(result);
         });
@@ -258,7 +242,6 @@ async function run() {
             res.send(result)
         });
 
-
         // Rider application submit
         app.post('/riders', verifyFBToken, async (req, res) => {
             const rider = req.body;
@@ -270,25 +253,18 @@ async function run() {
         // for  Approve rider
         app.patch('/riders/approve/:id', verifyFBToken, async (req, res) => {
             const id = req.params.id;
-
             // Step 1: Find the rider by id to get their email
             const rider = await ridersCollection.findOne({ _id: new ObjectId(id) });
-            if (!rider || !rider.email) {
-                return res.status(404).send({ message: 'Rider not found or missing email' });
-            }
-
             // Step 2: Update rider status
             const riderUpdate = await ridersCollection.updateOne(
                 { _id: new ObjectId(id) },
                 { $set: { status: 'active' } }
             );
-
             // Step 3: Update user's role to 'rider'
             const userUpdate = await usersCollection.updateOne(
                 { email: rider.email },
                 { $set: { role: 'rider' } }
             );
-
             res.send({ riderUpdate, userUpdate });
         });
 
@@ -296,27 +272,17 @@ async function run() {
         // for Deactivate rider
         app.patch('/riders/deactivate/:id', verifyFBToken, async (req, res) => {
             const id = req.params.id;
-
             const rider = await ridersCollection.findOne({ _id: new ObjectId(id) });
-            if (!rider || !rider.email) {
-                return res.status(404).send({ message: 'Rider not found or missing email' });
-            }
-
             const riderUpdate = await ridersCollection.updateOne(
                 { _id: new ObjectId(id) },
                 { $set: { status: 'pending' } }
             );
-
             const userUpdate = await usersCollection.updateOne(
                 { email: rider.email },
                 { $set: { role: 'user' } }
             );
-
             res.send({ riderUpdate, userUpdate });
         });
-
-
-
 
 
         app.delete('/parcels/:id', verifyFBToken, async (req, res) => {
@@ -333,8 +299,6 @@ async function run() {
             res.send(result);
         });
 
-
-
         // Ping to confirm connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. Successfully connected to MongoDB!");
@@ -349,9 +313,7 @@ async function run() {
         process.exit(1);
     }
 }
-
 run();
-
 // Basic route
 app.get('/', (req, res) => {
     res.send('ZAPSHIFT Parcel Delivery Server is running!');
