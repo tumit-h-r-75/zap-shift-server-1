@@ -95,7 +95,7 @@ async function run() {
         });
 
         // get user role by email
-        app.get('/user/role', verifyFBToken, verifyAdmin, async (req, res) => {
+        app.get('/user/role', verifyFBToken, async (req, res) => {
             const email = req.query.email;
             const user = await usersCollection.findOne({ email });
             res.send({
