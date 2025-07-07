@@ -140,6 +140,37 @@ async function run() {
             res.send(riders);
         });
 
+        // parcel colocted related id
+        app.patch('/parcels/assign-rider', verifyFBToken, verifyAdmin, async (req, res) => {
+            const { parcelId, riderId } = req.body;
+            if (!parcelId || !riderId) {
+                return res.status(400).send({ error: 'Missing parcelId or riderId' });
+            }
+            const parcelUpdate = await parcelsCollection.updateOne(
+                { _id: new ObjectId(parcelId) },
+                {
+                    $set: {
+                        delevery_status: 'in-transit',
+                        assignedRider: new ObjectId(riderId),
+                        assignedAt: new Date()
+                    }
+                }
+            );
+            const riderUpdate = await ridersCollection.updateOne(
+                { _id: new ObjectId(riderId) },
+                {
+                    $set: {
+                        workstatus: 'in-delevery'
+                    }
+                }
+            );
+            res.send({
+                parcelModified: parcelUpdate.modifiedCount,
+                riderModified: riderUpdate.modifiedCount,
+                message: '✅ Rider assigned & status updated.'
+            });
+        });
+
 
         // for pending riders
         app.get('/riders/pending', verifyFBToken, verifyAdmin, async (req, res) => {
@@ -153,13 +184,6 @@ async function run() {
             res.send(activeRiders);
         });
 
-
-        app.get('/parcels', verifyFBToken, async (req, res) => {
-            const result = await parcelsCollection.find().toArray();
-            res.send(result);
-        });
-
-
         // for getting data by id
         app.get('/parcels/:id', verifyFBToken, async (req, res) => {
             const id = req.params.id;
@@ -168,16 +192,23 @@ async function run() {
         });
 
         // for my parcel data & admins data 
-        app.get('/parcels', verifyFBToken, verifyAdmin, async (req, res) => {
-            const email = req.query.email;
-            const query = email ? { created_by: email } : {};
+        app.get('/parcels', verifyFBToken, async (req, res) => {
+            const email = req.decoded?.email;
+            const user = await usersCollection.findOne({ email });
+            if (!user) {
+                return res.status(403).send({ message: 'User not found or unauthorized' });
+            }
+            let query = {};
+            if (user.role !== 'admin') {
+                query = { created_by: email };
+            }
             const result = await parcelsCollection
                 .find(query)
                 .sort({ creation_date: -1 })
                 .toArray();
+
             res.send(result);
         });
-
 
         // for admin seeing the all payment history
         app.get("/all-payments", verifyFBToken, verifyAdmin, async (req, res) => {
@@ -258,7 +289,7 @@ async function run() {
         });
 
         // user related apis
-        app.post('/users', verifyFBToken, async (req, res) => {
+        app.post('/users', async (req, res) => {
             const email = req.body.email
             const existingUser = await usersCollection.findOne({ email });
             if (existingUser) {
