@@ -133,9 +133,13 @@ async function run() {
             const district = req.query.district;
             if (!district) return res.status(400).send({ error: 'District required' });
 
-            const riders = await ridersCollection.find({ district }).toArray();
+            const riders = await ridersCollection.find({
+                district: { $regex: `^${district}$`, $options: 'i' } // strict match with case-insensitive
+            }).toArray();
+
             res.send(riders);
         });
+
 
         // for pending riders
         app.get('/riders/pending', verifyFBToken, verifyAdmin, async (req, res) => {
